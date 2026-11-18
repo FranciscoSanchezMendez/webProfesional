@@ -11,6 +11,8 @@ from tests.conftest import alembic_config
 
 pytestmark = pytest.mark.db
 
+TABLES = {"users", "profiles", "sessions", "rate_limits"}
+
 
 def test_database_is_reachable(engine: Engine) -> None:
     assert check_database(engine)
@@ -28,9 +30,9 @@ def test_downgrade_and_upgrade_are_reproducible(engine: Engine) -> None:
     with engine.begin() as conn:
         cfg.attributes["connection"] = conn
         command.downgrade(cfg, "base")
-    assert {"users", "profiles"}.isdisjoint(inspect(engine).get_table_names())
+    assert TABLES.isdisjoint(inspect(engine).get_table_names())
 
     with engine.begin() as conn:
         cfg.attributes["connection"] = conn
         command.upgrade(cfg, "head")
-    assert {"users", "profiles"} <= set(inspect(engine).get_table_names())
+    assert TABLES <= set(inspect(engine).get_table_names())

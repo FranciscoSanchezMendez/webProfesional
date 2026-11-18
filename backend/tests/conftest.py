@@ -10,6 +10,7 @@ from pathlib import Path
 
 import pytest
 from alembic.config import Config
+from fastapi.testclient import TestClient
 from sqlalchemy import Engine, create_engine, make_url, text
 from sqlalchemy.orm import Session
 
@@ -66,6 +67,18 @@ def engine() -> Iterator[Engine]:
         command.upgrade(cfg, "head")
     yield test_engine
     test_engine.dispose()
+
+
+@pytest.fixture
+def client(db_session: Session) -> Iterator[TestClient]:
+    """Cliente HTTP cuya dependencia get_db usa la sesión transaccional del test."""
+    from app.db.session import get_db
+    from app.main import app
+
+    app.dependency_overrides[get_db] = lambda: db_session
+    with TestClient(app) as test_client:
+        yield test_client
+    app.dependency_overrides.clear()
 
 
 @pytest.fixture

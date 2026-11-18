@@ -45,3 +45,12 @@ def test_cors_origins_parsed_from_comma_separated_string() -> None:
 def test_normalization() -> None:
     assert normalize_email("  Ana@Example.COM ") == "ana@example.com"
     assert normalize_nickname(" @Ana-Dev ") == "ana-dev"
+
+
+def test_cookies_are_secure_with_host_prefix_when_deployed() -> None:
+    from app.api.deps import cookie_names
+
+    prod = Settings(environment="production", database_url="postgresql://h/d")
+    dev = Settings(environment="development")
+    assert prod.cookie_secure and cookie_names(prod) == ("__Host-pp_session", "__Host-pp_csrf")
+    assert not dev.cookie_secure and cookie_names(dev) == ("pp_session", "pp_csrf")

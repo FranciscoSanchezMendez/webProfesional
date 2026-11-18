@@ -53,6 +53,7 @@
 | pydantic-settings | 2.16.3 | |
 | psycopg | 3.3.9 | driver de SQLAlchemy (`postgresql+psycopg://`) |
 | SQLAlchemy / Alembic | 2.1.9 / 1.20.1 | síncrono (D-009); Alembic configurado en `pyproject.toml` |
+| argon2-cffi / email-validator | 25.1.0 / 2.4.0 | hash de contraseñas (D-018) / `EmailStr` |
 | PostgreSQL | 18.7-alpine | volumen en `/var/lib/postgresql` (cambio de la imagen 18+) |
 
 Motivos y consecuencias en `docs/DECISIONS.md` (D-001 a D-007).
@@ -159,6 +160,11 @@ Evaluar e implementar una estrategia coherente:
 - Cookies y dominios configurados por entorno.
 
 Claude debe documentar la estrategia final antes de implementarla.
+
+**Estrategia implementada (Fase 2):** sesión opaca en PostgreSQL (D-015), CSRF por token sincronizado +
+comprobación de `Origin` (D-016), rate limiting en PostgreSQL (D-017) y Argon2id (D-018). Contratos en
+`docs/API_SPECIFICATION.md`. Código: `app/api/deps.py` (sesión/CSRF/cookies), `app/services/auth.py`,
+`app/services/rate_limit.py`, `app/core/security.py`.
 
 ## 7. Privacidad y caché
 

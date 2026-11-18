@@ -7,6 +7,7 @@ El esquema es una propuesta inicial. Claude debe convertirlo en modelos SQLAlche
 | Migración | Fecha | Contenido |
 |---|---|---|
 | `f9b83d8d5ca7` (`backend/alembic/versions/2026_11_18_2107-…`) | 2026-11-18 | Tablas `users` y `profiles` |
+| `8994bd5c2527` (`backend/alembic/versions/2026_11_18_2223-…`) | 2026-11-18 | Tablas `sessions` y `rate_limits` |
 
 Modelos: `backend/app/models/{user,profile,enums}.py`. Repositorio: `backend/app/repositories/users.py`.
 
@@ -45,8 +46,31 @@ Modelos: `backend/app/models/{user,profile,enums}.py`. Repositorio: `backend/app
 | preferred_language | varchar(2) | NOT NULL, DEFAULT `es`, `ck_profiles_preferred_language` |
 | created_at, updated_at | timestamptz | NOT NULL, DEFAULT now() |
 
-Pendiente: nicknames reservados (Fase 2, validación en backend). Las tablas siguientes de este
-documento siguen siendo propuesta.
+### `sessions` (implementada, Fase 2)
+| Columna | Tipo | Restricciones |
+|---|---|---|
+| id | uuid | PK |
+| user_id | uuid | NOT NULL, FK `users.id` ON DELETE CASCADE, índice `ix_sessions_user_id` |
+| token_hash | varchar(64) | NOT NULL, `uq_sessions_token_hash` — SHA-256 del token de la cookie |
+| csrf_token_hash | varchar(64) | NOT NULL — SHA-256 del token CSRF |
+| persistent | boolean | NOT NULL — `true` si el usuario marcó «Recordarme» |
+| created_at | timestamptz | NOT NULL, DEFAULT now() |
+| expires_at | timestamptz | NOT NULL, índice `ix_sessions_expires_at` |
+
+Los tokens en claro solo existen en la cookie del navegador. Sin IP ni user-agent (minimización de datos).
+
+### `rate_limits` (implementada, Fase 2)
+| Columna | Tipo | Restricciones |
+|---|---|---|
+| key | varchar(100) | PK (compuesta) — `<acción>:<sha256(IP o email)>` |
+| window_start | timestamptz | PK (compuesta) — inicio de la ventana fija |
+| count | integer | NOT NULL |
+
+No guarda IPs ni emails en claro. Limpieza de filas antiguas y de sesiones caducadas:
+`purge_expired()` / `purge_expired_sessions()`, pendientes de programar como tarea (Fase 10).
+
+Nicknames reservados: lista en código (`app/core/reserved.py`), validada en backend; no hay tabla.
+Las tablas siguientes de este documento siguen siendo propuesta.
 
 ## Entidades (propuesta inicial)
 

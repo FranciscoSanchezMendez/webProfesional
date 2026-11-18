@@ -42,6 +42,10 @@ Si el repositorio está en `C:\` y Docker corre en WSL, los cambios de archivos 
 inotify; por eso `ng serve` usa `--poll` y uvicorn `WATCHFILES_FORCE_POLLING`. Para más rendimiento,
 clona el repositorio dentro del sistema de archivos de WSL (`~/...`).
 
+Si WSL se apaga por inactividad (no queda ninguna terminal WSL abierta), los contenedores se detienen y
+hay que volver a ejecutar `docker compose up -d`. Para evitarlo, mantén una terminal WSL abierta o ajusta
+`vmIdleTimeout` en `%UserProfile%\.wslconfig`.
+
 ## Comprobaciones
 
 ```bash
@@ -76,7 +80,9 @@ Ver `.env.example`. Nunca subas `.env` a Git. Variables relevantes:
 | `POSTGRES_USER/PASSWORD/DB` | db, backend | Credenciales locales |
 | `DATABASE_URL` | backend | Construida por compose a partir de las anteriores (`postgresql://` o `postgres://`; se usa el driver psycopg 3). Obligatoria en staging/producción |
 | `TEST_DATABASE_URL` | backend (tests) | Base para pytest; su nombre debe terminar en `_test` (el fixture la vacía) |
-| `CORS_ORIGINS` | backend | Orígenes permitidos, separados por comas |
+| `CORS_ORIGINS` | backend | Orígenes de confianza, separados por comas. También se usa para rechazar `POST/PUT/PATCH/DELETE` de otros orígenes (CSRF): debe incluir el origen público del frontend |
+| `MIN_REGISTRATION_AGE` | backend | Edad mínima de registro (defecto 14) |
+| `SESSION_TTL_HOURS` / `SESSION_REMEMBER_DAYS` | backend | Duración de la sesión sin/con «Recordarme» (defecto 12 h / 30 días) |
 | `ENVIRONMENT` | backend | `development`/`test`/`staging`/`production` (en `production` se desactiva `/api/docs`) |
 | `NG_ALLOWED_HOSTS` | frontend | Hosts aceptados por el SSR de Angular (protección anti-SSRF) |
 

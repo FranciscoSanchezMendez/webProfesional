@@ -38,7 +38,7 @@ Entorno: Windows 11 + Docker Engine 29.9.1 / Compose v5.6.0 en WSL2 (Ubuntu).
 No verificado: render de la página en un navegador real
 (se verificó el HTML SSR y la ruta `/api` que usa el navegador, no la hidratación visual).
 
-## Fase 1 — Backend base y modelo — IMPLEMENTADA en local (2026-11-18), pendiente CI remoto
+## Fase 1 — Backend base y modelo — COMPLETADA (2026-11-18)
 - [x] Configuración Pydantic por entorno: `DATABASE_URL` como `SecretStr`, conversión a driver psycopg,
       validación de staging/producción (URL obligatoria, sin CORS `*`).
 - [x] SQLAlchemy 2.1 síncrono (D-009) y Alembic 1.20 (`[tool.alembic]` en `pyproject.toml`). El health
@@ -48,7 +48,7 @@ No verificado: render de la página en un navegador real
 - [x] Repositorio mínimo (`add_user_with_profile`, `get_user_by_email`, `get_profile_by_nickname`,
       `nickname_exists`).
 - [x] Tests de repositorio, migración y configuración.
-**Criterio:** DB creada y migraciones reproducibles. → Cumplido en local.
+**Criterio:** DB creada y migraciones reproducibles. → Cumplido (local y CI: run `44405500209` sobre `bfd1ebb`, 3 jobs en verde, 37 tests).
 
 ### Pruebas ejecutadas (Fase 1)
 | Comprobación | Resultado |
@@ -64,16 +64,36 @@ No verificado: render de la página en un navegador real
 | `alembic upgrade head --sql` (modo offline) | genera el DDL |
 | Health `ready` vía proxy del frontend | `{"status":"ok","database":"ok"}` |
 
-No verificado aún: ejecución del CI en GitHub con estos cambios.
 
-## Fase 2 — Registro, login y sesión
-- [ ] Registro y validaciones.
-- [ ] Hash Argon2id.
-- [ ] Nickname availability.
-- [ ] Login/logout/me.
-- [ ] Sesión segura y CORS/CSRF.
-- [ ] Tests de auth, duplicados y rate limiting.
-**Criterio:** crear cuenta, iniciar sesión, cerrar sesión; duplicados rechazados.
+## Fase 2 — Registro, login y sesión — IMPLEMENTADA en local (2026-11-18), pendiente CI remoto
+- [x] Registro y validaciones (edad mínima 14, nicknames reservados, `extra="forbid"`) (D-014).
+- [x] Hash Argon2id con normalización NFKC y rehash automático (D-018).
+- [x] Nickname availability (`invalid` / `reserved` / `taken`).
+- [x] Login/logout/me con «Recordarme» (D-015).
+- [x] Sesión opaca en BD, cookies HttpOnly/SameSite/`__Host-`, CSRF por token + `Origin` (D-016).
+- [x] Rate limiting en PostgreSQL (D-017).
+- [x] Tests de auth, duplicados, validación, CSRF, caducidad y rate limiting.
+**Criterio:** crear cuenta, iniciar sesión, cerrar sesión; duplicados rechazados. → Cumplido en local.
+
+### Pruebas ejecutadas (Fase 2)
+| Comprobación | Resultado |
+|---|---|
+| `ruff check` / `ruff format --check` | OK |
+| `pytest` completo contra PostgreSQL | 73 passed |
+| Migración `8994bd5c2527` + roundtrip downgrade/upgrade + modelos == migraciones | OK |
+| Registro: 201 + login automático; duplicados email/nickname (con distinta capitalización) → 409 | OK |
+| Validación (10 casos: edad < 14, fecha futura, contraseña corta/distinta, nickname reservado/inválido, email, nombre vacío, `role` inyectado) → 422; edad exacta 14 → 201 | OK |
+| Login: errores idénticos para contraseña mala, email inexistente y cuenta inactiva; sin cookies | OK |
+| «Recordarme»: cookie sin `Max-Age` + 12 h en servidor / `Max-Age=2592000` | OK |
+| Rotación de sesión en login; sesión caducada → 401; `/me` con `private, no-store` | OK |
+| Logout sin/ con CSRF incorrecto → 403; correcto → 204 y sesión borrada | OK |
+| `Origin` ajeno → 403; rate limit login/email, registro/IP, nickname/IP → 429 + `Retry-After` | OK |
+| E2E con curl vía proxy del frontend (`localhost:4200/api`): flujo completo | OK |
+| BD: hash `$argon2id$`, sesiones solo con hashes, claves de rate limit sin IP en claro; contraseña ausente de logs | OK |
+| Imagen `prod` con Argon2 y configuración de producción | OK |
+
+Pendiente para fases posteriores: tarea programada de limpieza de sesiones/contadores (Fase 10),
+`FORWARDED_ALLOW_IPS` según el proxy de despliegue (Fase 10).
 
 ## Fase 3 — Angular base y autenticación
 - [ ] Shell, header, footer.

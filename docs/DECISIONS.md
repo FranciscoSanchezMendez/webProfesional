@@ -94,3 +94,41 @@ Formato: fecha · contexto · decisión · consecuencias.
   `TEST_DATABASE_URL`. El fixture recrea el esquema `public`, aplica migraciones con Alembic y cada test
   corre en una transacción revertida. Se niega a ejecutarse si el nombre no termina en `_test`.
 - **Consecuencias:** los tests validan las restricciones reales y la reproducibilidad de las migraciones.
+
+## 2026-11-18 · Fase 2
+
+### D-014 · Edad mínima de registro: 14 años
+- **Contexto:** la fecha de nacimiento es obligatoria; la LOPDGDD fija 14 años para consentir sin autorización parental.
+- **Decisión (usuario):** 14 años, configurable con `MIN_REGISTRATION_AGE`, validado en backend.
+- **Consecuencias:** si la plataforma se dirige a otros países de la UE, revisar (RGPD art. 8: 16 por defecto).
+
+### D-015 · Sesión opaca en BD con «Recordarme»
+- **Decisión (usuario):** token aleatorio de 256 bits en cookie `HttpOnly`, `SameSite=Lax`, `Secure` y prefijo
+  `__Host-` en staging/producción. En BD solo el SHA-256 (`sessions`). Sin «Recordarme»: cookie de navegador
+  + caducidad en servidor a las 12 h. Con «Recordarme»: cookie y sesión de 30 días. Caducidad absoluta (sin
+  renovación por uso). El login revoca la sesión previa del navegador (anti fijación). Registro = login automático
+  con sesión de navegador.
+- **Consecuencias:** logout y revocación inmediatos; cada petición autenticada consulta la BD (asumible).
+  El SSR de perfiles privados (Fase 4) reenviará la cookie al backend sin cachear la respuesta.
+
+### D-016 · CSRF: token sincronizado + Origin
+- **Decisión:** token CSRF por sesión (hash en BD) entregado en cookie legible; las operaciones autenticadas que
+  modifican datos exigen `X-CSRF-Token`. Además, middleware que rechaza métodos que modifican datos con un
+  `Origin` fuera de `CORS_ORIGINS`. Login/registro (sin sesión) quedan protegidos por `SameSite=Lax` + `Origin`.
+- **Consecuencias:** en cada entorno `CORS_ORIGINS` debe contener el origen público del frontend, aunque la API
+  se sirva en el mismo origen. El frontend (Fase 3) añadirá la cabecera con un interceptor.
+
+### D-017 · Rate limiting en PostgreSQL
+- **Decisión (usuario):** contadores de ventana fija en `rate_limits` con `INSERT … ON CONFLICT`, commit inmediato
+  (los intentos fallidos cuentan). Sujetos hasheados con SHA-256. Límites: login 20/15 min por IP y 10/15 min
+  por email; registro 5/h por IP; nickname 60/min por IP.
+- **Consecuencias:** funciona con varias instancias sin infraestructura extra. La IP depende de
+  `--proxy-headers` y de configurar `FORWARDED_ALLOW_IPS` en el despliegue (Fase 10). Si la carga crece,
+  `services/rate_limit.py` es el único punto a cambiar (Redis).
+
+### D-018 · Contraseñas y errores de autenticación
+- **Decisión:** Argon2id con `argon2-cffi` (parámetros RFC 9106 por defecto, rehash automático si cambian),
+  normalización Unicode NFKC, longitud 12–128 sin reglas de composición (criterio NIST SP 800-63B).
+  Login con mensaje genérico y verificación Argon2 también cuando el email no existe (mismo tiempo).
+  El registro sí informa de `email_taken`/`nickname_taken` (409) por usabilidad; mitigado por rate limiting.
+- **Consecuencias:** la enumeración de emails vía registro es posible a baja velocidad; reevaluar si hay abuso.

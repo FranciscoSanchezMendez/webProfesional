@@ -20,6 +20,12 @@ class Settings(BaseSettings):
     # Variable CORS_ORIGINS separada por comas: "http://localhost:4200,https://example.com".
     cors_origins: Annotated[list[str], NoDecode] = []
 
+    # Registro (D-014): edad mínima para consentir el tratamiento de datos (LOPDGDD).
+    min_registration_age: int = 14
+    # Sesión (D-015): sin "recordarme", cookie de navegador que el servidor caduca a las X horas.
+    session_ttl_hours: int = 12
+    session_remember_days: int = 30
+
     @field_validator("cors_origins", mode="before")
     @classmethod
     def split_origins(cls, value: str | list[str]) -> list[str]:
@@ -35,6 +41,11 @@ class Settings(BaseSettings):
             if "*" in self.cors_origins:
                 raise ValueError("CORS_ORIGINS no admite '*' en entornos desplegados")
         return self
+
+    @property
+    def cookie_secure(self) -> bool:
+        """Cookies Secure fuera de desarrollo/test (en local se sirve por HTTP)."""
+        return self.environment in ("staging", "production")
 
     @property
     def docs_enabled(self) -> bool:
