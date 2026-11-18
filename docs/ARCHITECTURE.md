@@ -16,7 +16,8 @@
 - Python: versión estable soportada por dependencias al iniciar proyecto.
 - FastAPI.
 - Pydantic v2.
-- SQLAlchemy 2.x async o sync; elegir una estrategia y mantenerla.
+- SQLAlchemy 2.x **síncrono** con psycopg 3 (D-009): `Session` por petición vía `get_db`, endpoints `def`
+  ejecutados en el threadpool de FastAPI.
 - Alembic.
 - PostgreSQL.
 - Argon2id para hash de contraseñas.
@@ -50,7 +51,8 @@
 | Python (contenedor) | 3.13.18 `slim-trixie` | |
 | FastAPI / uvicorn | 0.163.2 / 0.54.0 | |
 | pydantic-settings | 2.16.3 | |
-| psycopg | 3.3.9 | driver compatible con SQLAlchemy sync y async |
+| psycopg | 3.3.9 | driver de SQLAlchemy (`postgresql+psycopg://`) |
+| SQLAlchemy / Alembic | 2.1.9 / 1.20.1 | síncrono (D-009); Alembic configurado en `pyproject.toml` |
 | PostgreSQL | 18.7-alpine | volumen en `/var/lib/postgresql` (cambio de la imagen 18+) |
 
 Motivos y consecuencias en `docs/DECISIONS.md` (D-001 a D-007).
@@ -65,6 +67,8 @@ Navegador ──► :4200 frontend (ng serve + SSR) ──/api proxy──► ba
 - El frontend llama a la API con rutas relativas `/api/v1/...` (mismo origen); ver D-004.
 - `GET /api/v1/health` (liveness) y `GET /api/v1/health/ready` (readiness con PostgreSQL); ver D-005.
 - SSR: hosts permitidos por `NG_ALLOWED_HOSTS` en cada entorno; ver D-003.
+- Migraciones: automáticas al arrancar solo en desarrollo; en staging/producción, paso explícito con la
+  imagen `prod` (`alembic upgrade head`) antes de desplegar la nueva versión (D-011).
 
 ## 3. Arquitectura lógica
 
@@ -167,10 +171,14 @@ Claude debe documentar la estrategia final antes de implementarla.
 
 ## 8. Entornos y ramas
 
-Un único monorepo:
+Un único monorepo (D-008):
 - `develop`: desarrollo local/integración.
-- `staging`: entorno de preproducción.
-- `main`: producción.
+- `preproduction`: entorno de preproducción (staging).
+- `production`: producción.
+- `main`: sin uso por ahora.
+
+Flujo previsto: `develop` → PR → `preproduction` → PR → `production`. El CI se ejecuta en push a
+esas tres ramas y en cada Pull Request.
 
 Cada entorno debe tener:
 - Variables y secretos independientes.

@@ -23,9 +23,13 @@ services:
     build:
       context: ./backend
       target: dev
+    # Solo en desarrollo: migraciones automáticas al arrancar. En staging/producción son un paso explícito.
+    command: sh -c "alembic upgrade head && exec uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
     environment:
       ENVIRONMENT: development
       DATABASE_URL: postgresql://${POSTGRES_USER:-personalprofile}:${POSTGRES_PASSWORD:-personalprofile_dev}@db:5432/${POSTGRES_DB:-personalprofile}
+      # Base separada para pytest (se crea si no existe; el nombre debe terminar en _test).
+      TEST_DATABASE_URL: postgresql://${POSTGRES_USER:-personalprofile}:${POSTGRES_PASSWORD:-personalprofile_dev}@db:5432/${POSTGRES_DB:-personalprofile}_test
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:4200}
       # El bind mount desde Windows no emite eventos inotify: forzar polling para --reload.
       WATCHFILES_FORCE_POLLING: "true"

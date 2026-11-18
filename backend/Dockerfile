@@ -20,6 +20,8 @@ CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload
 FROM base AS prod
 COPY requirements.txt ./
 RUN pip install -r requirements.txt
+COPY pyproject.toml ./
+COPY alembic ./alembic
 COPY app ./app
 USER appuser
 EXPOSE 8000

@@ -1,15 +1,13 @@
-"""Comprobación mínima de conectividad con PostgreSQL.
+"""Comprobación de conectividad con PostgreSQL."""
 
-Fase 0: se usa psycopg directamente. En la Fase 1 se sustituirá por el engine de SQLAlchemy.
-"""
-
-import psycopg
+from sqlalchemy import Engine, text
+from sqlalchemy.exc import SQLAlchemyError
 
 
-def check_database(database_url: str, timeout_seconds: int = 3) -> bool:
+def check_database(engine: Engine) -> bool:
     try:
-        with psycopg.connect(database_url, connect_timeout=timeout_seconds) as conn:
-            conn.execute("SELECT 1")
+        with engine.connect() as conn:
+            conn.execute(text("SELECT 1"))
         return True
-    except psycopg.Error:
+    except SQLAlchemyError:
         return False

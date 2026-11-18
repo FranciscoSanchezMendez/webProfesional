@@ -45,8 +45,8 @@ clona el repositorio dentro del sistema de archivos de WSL (`~/...`).
 ## Comprobaciones
 
 ```bash
-# Backend: lint + tests (incluye test de integración contra PostgreSQL)
-docker compose exec -e RUN_DB_TESTS=1 backend sh -c "ruff check . && ruff format --check . && pytest"
+# Backend: lint + tests (incluye migraciones y repositorio contra la base personalprofile_test)
+docker compose exec backend sh -c "ruff check . && ruff format --check . && pytest"
 
 # Frontend: lint + tests (Vitest) + build de producción con SSR
 docker compose exec frontend sh -c "npx ng lint && npx ng test --watch=false && npx ng build --output-path /tmp/ng-dist"
@@ -55,6 +55,18 @@ docker compose exec frontend sh -c "npx ng lint && npx ng test --watch=false && 
 El CI (`.github/workflows/ci.yml`) ejecuta lo mismo y además levanta Compose y comprueba la
 conectividad frontend → backend → PostgreSQL.
 
+## Migraciones (Alembic)
+
+En desarrollo, el backend ejecuta `alembic upgrade head` al arrancar. A mano:
+
+```bash
+docker compose exec backend alembic upgrade head
+docker compose exec backend alembic revision --autogenerate -m "describe el cambio"   # revisar el archivo generado
+docker compose exec backend alembic downgrade -1
+```
+
+En staging/producción las migraciones son un paso explícito del despliegue (la imagen `prod` incluye Alembic).
+
 ## Variables de entorno
 
 Ver `.env.example`. Nunca subas `.env` a Git. Variables relevantes:
@@ -62,7 +74,8 @@ Ver `.env.example`. Nunca subas `.env` a Git. Variables relevantes:
 | Variable | Servicio | Uso |
 |---|---|---|
 | `POSTGRES_USER/PASSWORD/DB` | db, backend | Credenciales locales |
-| `DATABASE_URL` | backend | Construida por compose a partir de las anteriores |
+| `DATABASE_URL` | backend | Construida por compose a partir de las anteriores (`postgresql://` o `postgres://`; se usa el driver psycopg 3). Obligatoria en staging/producción |
+| `TEST_DATABASE_URL` | backend (tests) | Base para pytest; su nombre debe terminar en `_test` (el fixture la vacía) |
 | `CORS_ORIGINS` | backend | Orígenes permitidos, separados por comas |
 | `ENVIRONMENT` | backend | `development`/`test`/`staging`/`production` (en `production` se desactiva `/api/docs`) |
 | `NG_ALLOWED_HOSTS` | frontend | Hosts aceptados por el SSR de Angular (protección anti-SSRF) |

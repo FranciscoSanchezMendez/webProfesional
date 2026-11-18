@@ -2,7 +2,53 @@
 
 El esquema es una propuesta inicial. Claude debe convertirlo en modelos SQLAlchemy y migraciones Alembic, revisar constraints e índices y actualizar este documento al cambiarlo.
 
-## Entidades
+## Estado implementado
+
+| Migración | Fecha | Contenido |
+|---|---|---|
+| `f9b83d8d5ca7` (`backend/alembic/versions/2026_11_18_2107-…`) | 2026-11-18 | Tablas `users` y `profiles` |
+
+Modelos: `backend/app/models/{user,profile,enums}.py`. Repositorio: `backend/app/repositories/users.py`.
+
+### Convenciones aplicadas
+- PK `UUID` generado en aplicación (`uuid4`).
+- `created_at`/`updated_at`: `timestamptz`, `DEFAULT now()`; `updated_at` lo actualiza el ORM.
+- Enumerados como `VARCHAR` + `CHECK` (no ENUM nativo de PostgreSQL); ver D-010.
+- Nombres de restricciones deterministas: `pk_<tabla>`, `uq_<tabla>_<col>`, `fk_<tabla>_<col>_<ref>`,
+  `ck_<tabla>_<nombre>`, `ix_<tabla>_<col>`.
+
+### `users` (implementada)
+| Columna | Tipo | Restricciones |
+|---|---|---|
+| id | uuid | PK |
+| email | varchar(254) | NOT NULL, `uq_users_email`, `ck_users_email_normalized` (`email = lower(btrim(email))`) |
+| password_hash | varchar(255) | NOT NULL (Argon2id en Fase 2) |
+| role | varchar(5) | NOT NULL, DEFAULT `user`, `ck_users_role` IN (`user`,`admin`) |
+| is_active | boolean | NOT NULL, DEFAULT true (bloqueo de cuenta por sistema/admin) |
+| last_login_at | timestamptz | NULL |
+| created_at, updated_at | timestamptz | NOT NULL, DEFAULT now() |
+
+### `profiles` (implementada)
+| Columna | Tipo | Restricciones |
+|---|---|---|
+| id | uuid | PK |
+| user_id | uuid | NOT NULL, `uq_profiles_user_id` (1:1), FK `users.id` ON DELETE CASCADE |
+| nickname | varchar(30) | NOT NULL, `uq_profiles_nickname`, `ck_profiles_nickname_format` (`^[a-z0-9]([a-z0-9-]{1,28})[a-z0-9]$`) |
+| first_name, last_name, display_name | varchar(100) | NOT NULL |
+| birth_date | date | NOT NULL — **privada** |
+| location, job_title | varchar(120) | NULL |
+| biography | text | NULL (límite de longitud en la API, Fase 4) |
+| avatar_key, cover_key | varchar(255) | NULL (claves de object storage, no URLs) |
+| visibility | varchar(7) | NOT NULL, DEFAULT `public`, `ck_profiles_visibility` |
+| show_age | boolean | NOT NULL, DEFAULT false |
+| is_deactivated | boolean | NOT NULL, DEFAULT false (desactivación temporal por el usuario) |
+| preferred_language | varchar(2) | NOT NULL, DEFAULT `es`, `ck_profiles_preferred_language` |
+| created_at, updated_at | timestamptz | NOT NULL, DEFAULT now() |
+
+Pendiente: nicknames reservados (Fase 2, validación en backend). Las tablas siguientes de este
+documento siguen siendo propuesta.
+
+## Entidades (propuesta inicial)
 
 ### users
 - id: UUID PK.
@@ -27,7 +73,7 @@ El esquema es una propuesta inicial. Claude debe convertirlo en modelos SQLAlche
 - cover_key: varchar nullable.
 - visibility: enum (`public`, `private`), default `public`.
 - show_age: boolean default false.
-- is_suspended/deactivated: boolean según definición final.
+- is_suspended/deactivated: implementado como `is_deactivated` (ver "Estado implementado").
 - preferred_language: enum (`es`, `en`).
 - created_at, updated_at.
 

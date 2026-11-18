@@ -2,15 +2,18 @@
 
 Estados iniciales: TODO. Claude debe actualizar este archivo después de cada hito.
 
-## Fase 0 — Repositorio y entorno — IMPLEMENTADA en local (2026-11-18), pendiente CI remoto
+## Fase 0 — Repositorio y entorno — COMPLETADA (2026-11-18)
 - [x] Monorepo `frontend/` + `backend/` + `docs/`.
-- [ ] Ramas: existen `develop`, `main`, `preproduction`, `production` (remoto solo `production`). La
-      documentación habla de `develop/staging/main` → **pendiente de decisión del usuario** (ver CLAUDE.md).
+- [x] Ramas: `develop` (desarrollo), `preproduction` (staging), `production` (producción); `main` sin uso
+      (D-008). En el remoto existen `develop` y `production`; `preproduction` aún es solo local.
+- [x] Commit de Fase 0 en `develop` (`b394db4`) y push a `origin/develop` (realizado por el usuario).
 - [x] `.gitignore` (raíz, frontend, backend), `.env.example`, `README.md`.
 - [x] Docker Compose (`compose.yaml`): Angular 22 SSR, FastAPI, PostgreSQL 18; Dockerfiles multi-stage dev/prod.
 - [x] Healthchecks en los tres servicios y conexión frontend → backend → PostgreSQL.
-- [x] CI inicial (`.github/workflows/ci.yml`): lint/tests/build + Compose. **No ejecutado en GitHub** (sin push).
-**Criterio de salida:** levantar el entorno local con un comando y ejecutar checks verdes. → Cumplido en local.
+- [x] CI inicial (`.github/workflows/ci.yml`): lint/tests/build + Compose. Run `44298608018` sobre `develop`
+      (`b394db4`): jobs `backend`, `frontend` y `docker` en verde (4m47s); test de integración con PostgreSQL
+      ejecutado. Runner fijado después a `ubuntu-24.04` (aviso de migración de `ubuntu-latest` a Ubuntu 26).
+**Criterio de salida:** levantar el entorno local con un comando y ejecutar checks verdes. → Cumplido (local y CI).
 
 ### Pruebas ejecutadas (Fase 0)
 Entorno: Windows 11 + Docker Engine 29.9.1 / Compose v5.6.0 en WSL2 (Ubuntu).
@@ -32,16 +35,36 @@ Entorno: Windows 11 + Docker Engine 29.9.1 / Compose v5.6.0 en WSL2 (Ubuntu).
 | Recarga en caliente (uvicorn y ng serve) sobre `C:` vía WSL | OK con polling |
 | `ng serve` con código propiedad de otro uid (simula Linux nativo / CI) | OK |
 
-No verificado: ejecución del workflow en GitHub Actions; render de la página en un navegador real
+No verificado: render de la página en un navegador real
 (se verificó el HTML SSR y la ruta `/api` que usa el navegador, no la hidratación visual).
 
-## Fase 1 — Backend base y modelo
-- [ ] Configuración Pydantic por entorno.
-- [ ] SQLAlchemy y Alembic.
-- [ ] Modelos User/Profile.
-- [ ] Migración inicial.
-- [ ] Tests de repositorio y migración.
-**Criterio:** DB creada y migraciones reproducibles.
+## Fase 1 — Backend base y modelo — IMPLEMENTADA en local (2026-11-18), pendiente CI remoto
+- [x] Configuración Pydantic por entorno: `DATABASE_URL` como `SecretStr`, conversión a driver psycopg,
+      validación de staging/producción (URL obligatoria, sin CORS `*`).
+- [x] SQLAlchemy 2.1 síncrono (D-009) y Alembic 1.20 (`[tool.alembic]` en `pyproject.toml`). El health
+      `ready` usa ya el engine de SQLAlchemy.
+- [x] Modelos `User`/`Profile` con UNIQUE, FK en cascada y CHECK de normalización (D-010, D-011, D-012).
+- [x] Migración inicial `f9b83d8d5ca7`, revisada manualmente.
+- [x] Repositorio mínimo (`add_user_with_profile`, `get_user_by_email`, `get_profile_by_nickname`,
+      `nickname_exists`).
+- [x] Tests de repositorio, migración y configuración.
+**Criterio:** DB creada y migraciones reproducibles. → Cumplido en local.
+
+### Pruebas ejecutadas (Fase 1)
+| Comprobación | Resultado |
+|---|---|
+| `ruff check` / `ruff format --check` | OK |
+| `pytest` (health, config, migraciones, repositorio) contra `personalprofile_test` | 37 passed |
+| Migraciones: `downgrade base` → `upgrade head` y modelos == migraciones (`compare_metadata`) | OK |
+| Restricciones reales: email/nickname duplicados (con distinta capitalización), 2.º perfil por usuario, email no normalizado, 7 nicknames inválidos, >30 caracteres, rol desconocido, cascada al borrar usuario | rechazados como se espera |
+| Backend en Compose aplica `alembic upgrade head` al arrancar | `f9b83d8d5ca7 (head)` |
+| Restricciones en `pg_constraint` de la base de desarrollo | PK, FK, UQ y CK con nombres deterministas |
+| Aislamiento: los tests no modifican la base de desarrollo | OK |
+| Imagen `prod` ejecuta `alembic current` contra la BD | OK |
+| `alembic upgrade head --sql` (modo offline) | genera el DDL |
+| Health `ready` vía proxy del frontend | `{"status":"ok","database":"ok"}` |
+
+No verificado aún: ejecución del CI en GitHub con estos cambios.
 
 ## Fase 2 — Registro, login y sesión
 - [ ] Registro y validaciones.

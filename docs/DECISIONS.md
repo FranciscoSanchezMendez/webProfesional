@@ -51,3 +51,46 @@ Formato: fecha · contexto · decisión · consecuencias.
 ### D-007 · Herramientas de calidad
 - **Decisión:** backend con Ruff + pytest + `httpx2` (Starlette depreca `httpx` para `TestClient`);
   frontend con angular-eslint 22, Vitest (por defecto en Angular 22) y TypeScript `strict` + `strictTemplates`.
+
+### D-008 · Nombres de ramas
+- **Contexto:** la documentación inicial proponía `develop/staging/main`; el repositorio ya tenía
+  `develop`, `main`, `preproduction` y `production`.
+- **Decisión (usuario):** `develop` = desarrollo, `preproduction` = staging, `production` = producción.
+  `main` se conserva sin uso hasta nueva decisión.
+- **Consecuencias:** CI configurado para `develop`, `preproduction`, `production` y Pull Requests.
+  Los entornos de staging/producción (Fase 10) se asociarán a `preproduction`/`production`.
+
+## 2026-11-18 · Fase 1
+
+### D-009 · SQLAlchemy síncrono
+- **Contexto:** ARCHITECTURE.md pedía elegir sync o async y mantenerlo.
+- **Decisión (usuario):** SQLAlchemy 2.x síncrono con psycopg 3. `get_engine()`/`get_sessionmaker()`
+  perezosos, `get_db()` como dependencia (una sesión por petición), `expire_on_commit=False`.
+- **Consecuencias:** endpoints `def` (threadpool de FastAPI). Suficiente para el objetivo de carga; si algún
+  día hiciera falta async, psycopg 3 soporta ambos modos y el cambio quedaría acotado a `app/db` y repositorios.
+
+### D-010 · Enumerados como VARCHAR + CHECK
+- **Contexto:** los ENUM nativos de PostgreSQL requieren `ALTER TYPE` para añadir valores y complican
+  los downgrades.
+- **Decisión:** `sa.Enum(native_enum=False, create_constraint=True)` con valores `StrEnum` en Python.
+- **Consecuencias:** añadir un valor = migración que recrea un `CHECK` con nombre conocido.
+
+### D-011 · Integridad garantizada también en la base de datos
+- **Decisión:** además de normalizar en la aplicación (`app/core/normalization.py`), la BD impone
+  email en minúsculas sin espacios y formato de nickname mediante `CHECK`; UNIQUE en email, nickname y
+  `profiles.user_id`. Migraciones automáticas solo en desarrollo; en entornos desplegados, paso explícito.
+- **Consecuencias:** un error en la capa de aplicación no puede guardar datos duplicados por mayúsculas.
+  Los errores de restricción llegarán como `IntegrityError` y la Fase 2 debe traducirlos a 409/422.
+
+### D-012 · Desactivación de perfil y estado de cuenta
+- **Contexto:** DATABASE.md dejaba abierto "is_suspended/deactivated".
+- **Decisión:** `profiles.is_deactivated` (lo controla el usuario; perfil oculto, datos conservados) y
+  `users.is_active` (bloqueo de cuenta por sistema/admin). Sin suspensión por moderación en el MVP.
+- **Consecuencias:** las consultas públicas de perfil (Fase 4) deben filtrar `is_deactivated = false` y
+  `users.is_active = true`.
+
+### D-013 · Base de datos de test
+- **Decisión:** tests de BD contra PostgreSQL real (no SQLite), en una base `*_test` indicada por
+  `TEST_DATABASE_URL`. El fixture recrea el esquema `public`, aplica migraciones con Alembic y cada test
+  corre en una transacción revertida. Se niega a ejecutarse si el nombre no termina en `_test`.
+- **Consecuencias:** los tests validan las restricciones reales y la reproducibilidad de las migraciones.

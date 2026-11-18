@@ -60,10 +60,11 @@ Antes de modificar código:
 
 ## Git y entornos
 
-Monorepo con ramas:
+Monorepo con ramas (ver D-008 en `docs/DECISIONS.md`):
 - `develop`: integración de desarrollo.
-- `staging`: validación previa.
-- `main`: producción.
+- `preproduction`: validación previa (staging).
+- `production`: producción (rama por defecto del remoto).
+- `main`: sin uso por ahora; no participa en el flujo ni en el CI.
 
 No hacer push, merge ni despliegue sin que el usuario lo solicite. Recomendar Pull Requests y CI. Configuración de cada entorno mediante variables y secretos independientes. No usar datos reales de producción en desarrollo.
 

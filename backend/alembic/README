@@ -1,0 +1,7 @@
+Migraciones Alembic (configuración en [tool.alembic] de pyproject.toml).
+
+  alembic upgrade head                          # aplicar
+  alembic revision --autogenerate -m "mensaje"  # generar a partir de los modelos (revisar siempre)
+  alembic downgrade -1                          # deshacer la última
+
+La URL se toma de DATABASE_URL (app.core.config.Settings), nunca de este directorio.

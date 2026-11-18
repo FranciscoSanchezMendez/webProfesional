@@ -2,9 +2,10 @@ from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, Response, status
 from pydantic import BaseModel
+from sqlalchemy import Engine
 
-from app.core.config import Settings, get_settings
 from app.db.health import check_database
+from app.db.session import get_engine
 
 router = APIRouter(prefix="/health", tags=["health"])
 
@@ -30,10 +31,10 @@ def liveness() -> LivenessResponse:
     responses={status.HTTP_503_SERVICE_UNAVAILABLE: {"model": ReadinessResponse}},
 )
 def readiness(
-    response: Response, settings: Annotated[Settings, Depends(get_settings)]
+    response: Response, engine: Annotated[Engine, Depends(get_engine)]
 ) -> ReadinessResponse:
     """La API puede atender peticiones: PostgreSQL responde."""
-    if check_database(settings.database_url):
+    if check_database(engine):
         return ReadinessResponse(status="ok", database="ok")
     response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
     return ReadinessResponse(status="error", database="unavailable")
