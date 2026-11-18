@@ -1,0 +1,11 @@
+.shell {
+  max-width: 40rem;
+  margin: 0 auto;
+  padding: 2rem 1rem;
+}
+
+.status {
+  &[data-state='ok'] { color: #1b7f3a; }
+  &[data-state='degraded'],
+  &[data-state='down'] { color: #b42318; }
+}

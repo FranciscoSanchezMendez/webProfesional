@@ -41,6 +41,31 @@
 - Neon Postgres como opción inicial de base de datos.
 - Cloudflare R2 para imágenes.
 
+### Versiones fijadas (Fase 0, 2026-11-18)
+
+| Componente | Versión | Nota |
+|---|---|---|
+| Node (contenedor) | 24.22.3 `trixie-slim` | Angular 22 exige `^22.22.3 \|\| ^24.15` |
+| Angular / CLI / SSR | 22.2.x | `RenderMode.Server`, Vitest, angular-eslint 22.7 |
+| Python (contenedor) | 3.13.18 `slim-trixie` | |
+| FastAPI / uvicorn | 0.163.2 / 0.54.0 | |
+| pydantic-settings | 2.16.3 | |
+| psycopg | 3.3.9 | driver compatible con SQLAlchemy sync y async |
+| PostgreSQL | 18.7-alpine | volumen en `/var/lib/postgresql` (cambio de la imagen 18+) |
+
+Motivos y consecuencias en `docs/DECISIONS.md` (D-001 a D-007).
+
+### Entorno local (implementado)
+
+```text
+Navegador ──► :4200 frontend (ng serve + SSR) ──/api proxy──► backend:8000 (FastAPI) ──► db:5432 (PostgreSQL)
+                                               (red interna de Compose)
+```
+
+- El frontend llama a la API con rutas relativas `/api/v1/...` (mismo origen); ver D-004.
+- `GET /api/v1/health` (liveness) y `GET /api/v1/health/ready` (readiness con PostgreSQL); ver D-005.
+- SSR: hosts permitidos por `NG_ALLOWED_HOSTS` en cada entorno; ver D-003.
+
 ## 3. Arquitectura lógica
 
 ```text
@@ -182,7 +207,12 @@ Antes de producción:
 ## 11. Riesgos conocidos
 
 - Free tiers pueden cambiar o suspender servicios.
-- SSR en edge puede requerir ajustes de compatibilidad Node/Web APIs.
+- SSR en edge puede requerir ajustes de compatibilidad Node/Web APIs. El proyecto usa hoy el `server.ts`
+  de Express (Node); para Cloudflare Workers habría que exponer un handler fetch con `AngularAppEngine`
+  y validar las dependencias. Si no encaja, alternativa: frontend SSR en Cloud Run junto al backend.
+- Enrutado de `/api` en producción: el proxy de `ng serve` solo existe en desarrollo (D-004).
+- Las llamadas SSR → API (Fase 4) no deben reenviar cookies de usuario a cachés compartidas ni usar la
+  URL pública si existe una interna.
 - Almacenamiento de imágenes y tráfico pueden superar cuotas por uso de galerías.
 - El correo transaccional será necesario para recuperación de contraseña futura; no se implementa ahora.
 - SEO depende de contenido público útil, rendimiento y rastreo; no hay garantía de indexación.

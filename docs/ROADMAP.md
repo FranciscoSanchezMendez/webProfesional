@@ -2,13 +2,38 @@
 
 Estados iniciales: TODO. Claude debe actualizar este archivo después de cada hito.
 
-## Fase 0 — Repositorio y entorno
-- [ ] Crear monorepo y ramas `develop`, `staging`, `main`.
-- [ ] Añadir `.gitignore`, `.env.example`, README.
-- [ ] Docker Compose: Angular, FastAPI, PostgreSQL.
-- [ ] Healthchecks y conexión frontend-backend.
-- [ ] CI inicial: lint/build/tests.
-**Criterio de salida:** levantar el entorno local con un comando y ejecutar checks verdes.
+## Fase 0 — Repositorio y entorno — IMPLEMENTADA en local (2026-11-18), pendiente CI remoto
+- [x] Monorepo `frontend/` + `backend/` + `docs/`.
+- [ ] Ramas: existen `develop`, `main`, `preproduction`, `production` (remoto solo `production`). La
+      documentación habla de `develop/staging/main` → **pendiente de decisión del usuario** (ver CLAUDE.md).
+- [x] `.gitignore` (raíz, frontend, backend), `.env.example`, `README.md`.
+- [x] Docker Compose (`compose.yaml`): Angular 22 SSR, FastAPI, PostgreSQL 18; Dockerfiles multi-stage dev/prod.
+- [x] Healthchecks en los tres servicios y conexión frontend → backend → PostgreSQL.
+- [x] CI inicial (`.github/workflows/ci.yml`): lint/tests/build + Compose. **No ejecutado en GitHub** (sin push).
+**Criterio de salida:** levantar el entorno local con un comando y ejecutar checks verdes. → Cumplido en local.
+
+### Pruebas ejecutadas (Fase 0)
+Entorno: Windows 11 + Docker Engine 29.9.1 / Compose v5.6.0 en WSL2 (Ubuntu).
+
+| Comprobación | Resultado |
+|---|---|
+| `docker compose up --build --wait` | db, backend, frontend `healthy` |
+| Backend `ruff check` / `ruff format --check` | OK |
+| Backend `pytest` (3 unitarios + 1 integración con PostgreSQL) | 4 passed |
+| Frontend `ng lint` | OK |
+| Frontend `ng test` (Vitest) | 3 passed |
+| Frontend `ng build` (SSR) | OK |
+| Windows → `localhost:8000/api/v1/health` | `{"status":"ok"}` |
+| Windows → `localhost:4200/api/v1/health/ready` (proxy → backend → db) | `{"status":"ok","database":"ok"}` |
+| Contenedor frontend → `backend:8000` (red interna) | OK |
+| HTML de `/` renderizado en servidor (SSR) | contiene `<h1>PersonalProfile</h1>` |
+| BD parada → readiness | `503 {"status":"error","database":"unavailable"}`; recupera al reiniciar |
+| Imágenes `prod` backend/frontend | arrancan `healthy`, usuarios no-root, `/api/docs` 404 en producción |
+| Recarga en caliente (uvicorn y ng serve) sobre `C:` vía WSL | OK con polling |
+| `ng serve` con código propiedad de otro uid (simula Linux nativo / CI) | OK |
+
+No verificado: ejecución del workflow en GitHub Actions; render de la página en un navegador real
+(se verificó el HTML SSR y la ruta `/api` que usa el navegador, no la hidratación visual).
 
 ## Fase 1 — Backend base y modelo
 - [ ] Configuración Pydantic por entorno.

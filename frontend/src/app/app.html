@@ -1,0 +1,12 @@
+<main class="shell">
+  <h1>PersonalProfile</h1>
+  <p class="status" data-testid="api-status" [attr.data-state]="apiState()">
+    @switch (apiState()) {
+      @case ('checking') { Comprobando API… }
+      @case ('ok') { API y base de datos operativas }
+      @case ('degraded') { API activa, base de datos no disponible }
+      @case ('down') { API no disponible }
+    }
+  </p>
+</main>
+<router-outlet />
