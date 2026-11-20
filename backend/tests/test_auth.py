@@ -93,7 +93,8 @@ def test_register_rejects_duplicates(
     [
         {"birth_date": years_ago(14, days=1)},  # cumple 14 mañana
         {"birth_date": (date.today() + timedelta(days=1)).isoformat()},
-        {"password": "corta", "password_confirm": "corta"},
+        {"password": "x" * 6, "password_confirm": "x" * 6},  # mínimo 7 (D-022)
+        {"password": "x" * 31, "password_confirm": "x" * 31},  # máximo 30 (D-022)
         {"password_confirm": "otra-contraseña-larga"},
         {"nickname": "admin"},
         {"nickname": "-ana"},
@@ -110,6 +111,13 @@ def test_register_validation_errors(client: TestClient, overrides: dict[str, str
 
 def test_register_accepts_exactly_minimum_age(client: TestClient) -> None:
     assert register(client, birth_date=years_ago(14)).status_code == 201
+
+
+@pytest.mark.parametrize("length", [7, 30])
+def test_register_accepts_password_length_limits(client: TestClient, length: int) -> None:
+    password = "x" * length
+    response = register(client, password=password, password_confirm=password)
+    assert response.status_code == 201
 
 
 # --- Disponibilidad de nickname ---------------------------------------------------------------

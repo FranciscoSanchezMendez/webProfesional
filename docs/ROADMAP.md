@@ -65,7 +65,7 @@ No verificado: render de la página en un navegador real
 | Health `ready` vía proxy del frontend | `{"status":"ok","database":"ok"}` |
 
 
-## Fase 2 — Registro, login y sesión — IMPLEMENTADA en local (2026-11-18), pendiente CI remoto
+## Fase 2 — Registro, login y sesión — COMPLETADA (2026-11-18)
 - [x] Registro y validaciones (edad mínima 14, nicknames reservados, `extra="forbid"`) (D-014).
 - [x] Hash Argon2id con normalización NFKC y rehash automático (D-018).
 - [x] Nickname availability (`invalid` / `reserved` / `taken`).
@@ -73,7 +73,7 @@ No verificado: render de la página en un navegador real
 - [x] Sesión opaca en BD, cookies HttpOnly/SameSite/`__Host-`, CSRF por token + `Origin` (D-016).
 - [x] Rate limiting en PostgreSQL (D-017).
 - [x] Tests de auth, duplicados, validación, CSRF, caducidad y rate limiting.
-**Criterio:** crear cuenta, iniciar sesión, cerrar sesión; duplicados rechazados. → Cumplido en local.
+**Criterio:** crear cuenta, iniciar sesión, cerrar sesión; duplicados rechazados. → Cumplido (local y CI: run `44412944104` sobre `5fdc3e3`, 3 jobs en verde).
 
 ### Pruebas ejecutadas (Fase 2)
 | Comprobación | Resultado |
@@ -95,13 +95,32 @@ No verificado: render de la página en un navegador real
 Pendiente para fases posteriores: tarea programada de limpieza de sesiones/contadores (Fase 10),
 `FORWARDED_ALLOW_IPS` según el proxy de despliegue (Fase 10).
 
-## Fase 3 — Angular base y autenticación
-- [ ] Shell, header, footer.
-- [ ] Rutas login/registro.
-- [ ] Formularios reactivos.
-- [ ] Estado de sesión, guards e interceptor.
-- [ ] Traducciones ES/EN y tema claro/oscuro.
-**Criterio:** flujos de registro/login utilizables en móvil y escritorio.
+## Fase 3 — Angular base y autenticación — IMPLEMENTADA en local (2026-11-19), pendiente CI remoto
+- [x] Shell, header (estado de sesión, menú de usuario), footer (enlaces, idioma, tema), 404 real en SSR.
+- [x] Rutas `/login`, `/register` (guestGuard, `noindex`), `/about`, `/contact`, `/faq` (marcadores).
+- [x] Formularios reactivos tipados con validación espejo de la API, errores bajo cada campo, nickname
+      comprobado al perder el foco, errores 409/422 mapeados a su campo.
+- [x] Estado de sesión con signals (D-019), `guestGuard`/`authGuard`, interceptores CSRF y 401,
+      `returnUrl` sin redirecciones abiertas.
+- [x] Traducciones ES/EN tipadas (D-020) y tema sistema/claro/oscuro sin parpadeo en SSR (D-021).
+**Criterio:** flujos de registro/login utilizables en móvil y escritorio. → Cumplido en local.
+
+### Pruebas ejecutadas (Fase 3)
+| Comprobación | Resultado |
+|---|---|
+| `ng lint` (incluye reglas de accesibilidad de plantillas) | OK |
+| `ng test` (Vitest): servicio de sesión, interceptores, guards, `safeReturnUrl`, validadores, páginas login/registro, header, footer | 39 passed |
+| `ng build` (SSR) | OK |
+| SSR con curl: idioma por cookie/`Accept-Language`, tema por cookie, títulos traducidos, `noindex` en login/registro/404, HTTP 404, cabecera sin datos de usuario | OK |
+| Navegador real (Playwright 1.65, Chromium) a 390 px y 1280 px: 17 comprobaciones × 2 (registro completo, errores por campo, foco, nickname reservado/libre, contraseñas distintas, login fallido genérico, «Recordarme», guard, logout, idioma y tema persistentes, sin scroll horizontal, sin errores de consola) | 34/34 OK |
+| Cabecera a 320 px y 390 px sin desbordamiento | OK (corregido: botones partidos en móvil) |
+| Backend sin regresiones (`pytest`) | 73 passed |
+
+Bug encontrado por los tests y corregido: los guards llamaban a `inject(Router)` después de un `await`
+(fuera del contexto de inyección), lo que habría fallado al visitar `/login` con sesión.
+
+No verificado: Firefox/Safari (solo Chromium); lectores de pantalla reales. La prueba de navegador fue
+manual (script fuera del repo); automatizar E2E en CI queda como mejora.
 
 ## Fase 4 — Perfil público/privado
 - [ ] Perfil `/@nickname`.

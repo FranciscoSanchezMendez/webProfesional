@@ -1,11 +1,31 @@
-.shell {
-  max-width: 40rem;
-  margin: 0 auto;
-  padding: 2rem 1rem;
+:host {
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
 }
 
-.status {
-  &[data-state='ok'] { color: #1b7f3a; }
-  &[data-state='degraded'],
-  &[data-state='down'] { color: #b42318; }
+/* El panel ocupa todo el alto entre cabecera y pie, sin franjas de separación. */
+.site-main {
+  flex: 1;
+  display: flex;
+  outline: none;
+
+  > .container {
+    display: flex;
+    flex-direction: column;
+  }
+}
+
+/* Zona de contenido: mismos márgenes laterales que la cabecera y color propio. */
+.content-panel {
+  flex: 1;
+  padding: var(--space-5) var(--space-4);
+  border-inline: 1px solid var(--color-border);
+  background: var(--color-content);
+}
+
+@media (min-width: 40rem) {
+  .content-panel {
+    padding: var(--space-6) var(--space-5);
+  }
 }

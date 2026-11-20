@@ -54,6 +54,25 @@
 | psycopg | 3.3.9 | driver de SQLAlchemy (`postgresql+psycopg://`) |
 | SQLAlchemy / Alembic | 2.1.9 / 1.20.1 | síncrono (D-009); Alembic configurado en `pyproject.toml` |
 | argon2-cffi / email-validator | 25.1.0 / 2.4.0 | hash de contraseñas (D-018) / `EmailStr` |
+| @ngx-translate/core | 18.1.0 | traducciones ES/EN en caliente (D-020) |
+
+### Frontend implementado (Fase 3)
+
+```text
+frontend/src/app/
+├── core/
+│   ├── auth/      AuthService (signals: unknown/anonymous/authenticated), guards, interceptores CSRF y 401
+│   ├── http/      CookieStore (navegador + SSR vía REQUEST), parseApiError
+│   ├── i18n/      es.ts / en.ts tipados, LanguageService, SeoTitleStrategy (title + robots)
+│   └── theme/     ThemeService (sistema/claro/oscuro en cookie)
+├── shared/        header, footer, field-error, forms
+└── features/      home, auth (login, register, validators), info, not-found
+```
+
+- Zoneless (por defecto en Angular 22) + signals; componentes standalone; formularios reactivos tipados.
+- Idioma y tema se aplican en `provideAppInitializer` (también en SSR) leyendo cookies: sin parpadeo.
+- La sesión se resuelve solo en el navegador (D-019); el HTML del SSR nunca contiene datos de usuario.
+- Rutas desconocidas → 404 real en SSR (`app.routes.server.ts`).
 | PostgreSQL | 18.7-alpine | volumen en `/var/lib/postgresql` (cambio de la imagen 18+) |
 
 Motivos y consecuencias en `docs/DECISIONS.md` (D-001 a D-007).

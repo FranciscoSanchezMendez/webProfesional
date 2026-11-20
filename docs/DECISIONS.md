@@ -129,6 +129,43 @@ Formato: fecha · contexto · decisión · consecuencias.
 ### D-018 · Contraseñas y errores de autenticación
 - **Decisión:** Argon2id con `argon2-cffi` (parámetros RFC 9106 por defecto, rehash automático si cambian),
   normalización Unicode NFKC, longitud 12–128 sin reglas de composición (criterio NIST SP 800-63B).
+  **Longitud sustituida por D-022 (7–30).**
   Login con mensaje genérico y verificación Argon2 también cuando el email no existe (mismo tiempo).
   El registro sí informa de `email_taken`/`nickname_taken` (409) por usabilidad; mitigado por rate limiting.
 - **Consecuencias:** la enumeración de emails vía registro es posible a baja velocidad; reevaluar si hay abuso.
+
+## 2026-11-19 · Fase 3
+
+### D-019 · Sesión resuelta en el navegador; el HTML SSR no depende del usuario
+- **Contexto:** el SSR no reenvía la cookie de sesión al backend y el HTML de páginas públicas podría
+  acabar en cachés compartidas.
+- **Decisión:** `AuthService.ensureLoaded()` consulta `/me` solo en el navegador. En SSR el estado es
+  `unknown` y la cabecera reserva el hueco sin botones. `guestGuard` espera a `/me`; `authGuard` deja pasar en
+  SSR (las rutas protegidas futuras usarán `RenderMode.Client` y la API autoriza siempre).
+- **Consecuencias:** ningún dato de usuario en el HTML del servidor. En Fase 4 los perfiles privados
+  necesitarán una estrategia propia (reenvío de cookie con `Cache-Control: private, no-store`).
+
+### D-020 · Traducciones con ngx-translate y diccionarios TypeScript empaquetados
+- **Contexto:** el idioma se elige y recuerda en caliente; el i18n nativo de Angular compila un build por idioma.
+- **Decisión:** `@ngx-translate/core` 18 con un loader que importa `es.ts`/`en.ts` (import dinámico, sin
+  HTTP: funciona igual en SSR). `en.ts` está tipado con las claves de `es.ts`, así que falta de claves = error
+  de compilación. Preferencia en cookie `pp_lang`, leída también en SSR (`REQUEST`).
+- **Consecuencias:** el HTML depende de cookies (`pp_lang`, `pp_theme`): no debe cachearse en CDN sin
+  variar por ellas (a considerar en Fase 9).
+
+### D-021 · Diseño provisional por tokens
+- **Contexto:** `UI_UX_SPECIFICATION.md` estaba vacío y la referencia visual no está en el repositorio.
+- **Decisión:** diseño minimalista neutro con tokens CSS, temas claro/oscuro/sistema (cookie `pp_theme`).
+- **Consecuencias:** al recibir la referencia, se ajustan los tokens y se completa la especificación.
+
+## 2026-11-20
+
+### D-022 · Longitud de contraseña 7–30 (decisión del usuario)
+- **Contexto:** D-018 fijaba 12–128 caracteres.
+- **Decisión (usuario):** `PASSWORD_MIN_LENGTH = 7`, `PASSWORD_MAX_LENGTH = 30` en
+  `backend/app/schemas/auth.py`; el frontend replica los mismos valores en `features/auth/validators.ts`.
+  El máximo también se aplica al campo `password` del login.
+- **Consecuencias:** por debajo de la recomendación de NIST SP 800-63B (mínimo 8, y aceptar al menos 64
+  caracteres). Un máximo de 30 puede rechazar contraseñas generadas por gestores de contraseñas. El límite
+  de coste de Argon2 no requiere un máximo tan bajo. Mitigaciones existentes: Argon2id y rate limiting.
+  Las cuentas ya creadas con contraseñas de más de 30 caracteres no podrán iniciar sesión.

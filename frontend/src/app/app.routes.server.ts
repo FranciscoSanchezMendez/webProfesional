@@ -1,9 +1,12 @@
 import { RenderMode, ServerRoute } from '@angular/ssr';
 
-// Las rutas públicas (p. ej. /@nickname) son dinámicas: se renderizan en servidor por petición.
+/**
+ * Todas las rutas se renderizan en servidor por petición (contenido dinámico, idioma y tema
+ * dependen de cookies). Las rutas desconocidas responden 404.
+ */
 export const serverRoutes: ServerRoute[] = [
-  {
-    path: '**',
-    renderMode: RenderMode.Server,
-  },
+  ...['', 'login', 'register', 'about', 'contact', 'faq'].map(
+    (path): ServerRoute => ({ path, renderMode: RenderMode.Server }),
+  ),
+  { path: '**', renderMode: RenderMode.Server, status: 404 },
 ];

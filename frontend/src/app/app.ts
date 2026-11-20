@@ -1,30 +1,21 @@
-import { HttpErrorResponse } from '@angular/common/http';
-import { Component, afterNextRender, inject, signal } from '@angular/core';
+import { Component, afterNextRender, inject } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
+import { TranslatePipe } from '@ngx-translate/core';
 
-import { HealthService } from './core/health/health.service';
-
-type ApiState = 'checking' | 'ok' | 'degraded' | 'down';
+import { AuthService } from './core/auth/auth.service';
+import { Footer } from './shared/footer/footer';
+import { Header } from './shared/header/header';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet],
+  imports: [RouterOutlet, Header, Footer, TranslatePipe],
   templateUrl: './app.html',
   styleUrl: './app.scss',
 })
 export class App {
-  private readonly health = inject(HealthService);
-  protected readonly apiState = signal<ApiState>('checking');
-
   constructor() {
-    // El estado técnico no es contenido indexable: se consulta solo en el navegador.
-    afterNextRender(() => this.checkApi());
-  }
-
-  private checkApi(): void {
-    this.health.readiness().subscribe({
-      next: () => this.apiState.set('ok'),
-      error: (err: HttpErrorResponse) => this.apiState.set(err.status === 503 ? 'degraded' : 'down'),
-    });
+    const auth = inject(AuthService);
+    // La sesión se resuelve solo en el navegador (D-019).
+    afterNextRender(() => void auth.ensureLoaded());
   }
 }

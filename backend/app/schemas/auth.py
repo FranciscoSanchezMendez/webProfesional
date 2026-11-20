@@ -20,8 +20,8 @@ from app.models import Language, ProfileVisibility, UserRole
 from app.models.profile import NICKNAME_PATTERN
 
 NICKNAME_RE = re.compile(NICKNAME_PATTERN)
-PASSWORD_MIN_LENGTH = 12
-PASSWORD_MAX_LENGTH = 128  # limita el coste de Argon2 ante entradas enormes
+PASSWORD_MIN_LENGTH = 7
+PASSWORD_MAX_LENGTH = 30  # limita el coste de Argon2 ante entradas enormes
 
 Name = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=100)]
 ShortText = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=120)]

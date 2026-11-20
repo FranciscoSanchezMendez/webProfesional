@@ -1,0 +1,149 @@
+.site-header {
+  background: var(--color-chrome);
+  color: var(--color-on-chrome);
+}
+
+.site-header__inner {
+  display: flex;
+  flex-wrap: wrap; /* pantallas muy estrechas (<360px): los botones pasan a una segunda línea */
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-3);
+  min-height: 3.5rem;
+  padding-block: var(--space-2);
+}
+
+.brand {
+  font-weight: 700;
+  font-size: 1.05rem;
+  color: var(--color-on-chrome);
+  text-decoration: none;
+  letter-spacing: -0.01em;
+}
+
+.site-header__auth {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+
+  /* Botón secundario sobre el fondo de la cabecera. */
+  .btn-ghost {
+    color: var(--color-on-chrome);
+    border-color: var(--color-chrome-border);
+
+    &:hover {
+      background: var(--color-chrome-hover);
+    }
+  }
+
+  /* Móvil: botones compactos en una sola línea. */
+  .btn {
+    min-height: 2.25rem;
+    padding: var(--space-1) var(--space-3);
+    font-size: 0.9rem;
+    white-space: nowrap;
+  }
+}
+
+@media (min-width: 40rem) {
+  .site-header__auth .btn {
+    padding-inline: var(--space-4);
+    font-size: 1rem;
+  }
+}
+
+.site-header__placeholder {
+  display: inline-block;
+  width: 8rem;
+  height: 2.25rem;
+}
+
+.user-button {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1);
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--color-on-chrome);
+  cursor: pointer;
+  anchor-name: --user-menu;
+
+  &:hover {
+    background: var(--color-chrome-hover);
+  }
+}
+
+.avatar {
+  display: grid;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 50%;
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+/* En móvil solo el avatar; el nombre aparece desde tablet. */
+.user-button__text {
+  display: none;
+  flex-direction: column;
+  align-items: flex-start;
+  line-height: 1.2;
+  text-align: left;
+}
+
+.user-button__nick {
+  font-size: 0.8rem;
+  color: var(--color-on-chrome-muted);
+}
+
+@media (min-width: 40rem) {
+  .user-button__text {
+    display: flex;
+  }
+}
+
+.menu {
+  margin: 0;
+  inset: auto;
+  position-anchor: --user-menu;
+  top: anchor(bottom);
+  right: anchor(right);
+  min-width: 12rem;
+  padding: var(--space-1);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  color: var(--color-text);
+  box-shadow: var(--shadow);
+}
+
+/* Navegadores sin CSS anchor positioning: esquina superior derecha bajo la cabecera. */
+@supports not (anchor-name: --a) {
+  .menu {
+    position: fixed;
+    inset: 3.5rem var(--space-3) auto auto;
+  }
+}
+
+.menu__item {
+  display: block;
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  border: 0;
+  border-radius: calc(var(--radius) - 2px);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+
+  &:hover,
+  &:focus-visible {
+    background: var(--color-surface-muted);
+  }
+}

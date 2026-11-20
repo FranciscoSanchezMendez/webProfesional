@@ -59,6 +59,15 @@ docker compose exec frontend sh -c "npx ng lint && npx ng test --watch=false && 
 El CI (`.github/workflows/ci.yml`) ejecuta lo mismo y además levanta Compose y comprueba la
 conectividad frontend → backend → PostgreSQL.
 
+## Dependencias del frontend
+
+Si cambian `frontend/package.json`/`package-lock.json`, reconstruye la imagen y renueva el volumen de
+`node_modules` (si no, el contenedor seguirá usando los módulos antiguos):
+
+```bash
+docker compose up -d --build -V frontend
+```
+
 ## Migraciones (Alembic)
 
 En desarrollo, el backend ejecuta `alembic upgrade head` al arrancar. A mano:

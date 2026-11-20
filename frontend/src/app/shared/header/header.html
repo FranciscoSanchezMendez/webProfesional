@@ -1,0 +1,40 @@
+<header class="site-header">
+  <div class="container site-header__inner">
+    <a class="brand" routerLink="/">{{ 'app.name' | translate }}</a>
+
+    <nav class="site-header__auth" [attr.aria-label]="'header.userMenu' | translate">
+      @switch (auth.status()) {
+        @case ('authenticated') {
+          @if (auth.user(); as user) {
+            <button
+              type="button"
+              class="user-button"
+              popovertarget="user-menu"
+              [attr.aria-label]="'header.userMenu' | translate"
+              data-testid="user-menu-button"
+            >
+              <span class="avatar" aria-hidden="true">{{ initials() }}</span>
+              <span class="user-button__text">
+                <span class="user-button__name">{{ user.profile.display_name }}</span>
+                <span class="user-button__nick">&#64;{{ user.profile.nickname }}</span>
+              </span>
+            </button>
+            <div id="user-menu" class="menu" popover #menu>
+              <button type="button" class="menu__item" (click)="logout()" data-testid="logout">
+                {{ 'header.logout' | translate }}
+              </button>
+            </div>
+          }
+        }
+        @case ('anonymous') {
+          <a class="btn btn-ghost" routerLink="/login">{{ 'header.login' | translate }}</a>
+          <a class="btn btn-primary" routerLink="/register">{{ 'header.register' | translate }}</a>
+        }
+        @default {
+          <!-- SSR / cargando: hueco reservado para evitar saltos de maquetación -->
+          <span class="site-header__placeholder" aria-hidden="true"></span>
+        }
+      }
+    </nav>
+  </div>
+</header>

@@ -77,7 +77,7 @@ Límite: 5/hora por IP. Crea usuario + perfil e **inicia sesión** (cookie de na
 | birth_date | anterior a hoy; edad ≥ `MIN_REGISTRATION_AGE` (14) |
 | location, job_title | 1–120 caracteres |
 | email | email válido (sin dominios reservados), ≤ 254; se guarda en minúsculas |
-| password | 12–128 caracteres; `password_confirm` debe coincidir |
+| password | 7–30 caracteres (D-022); `password_confirm` debe coincidir |
 | visibility | `public` (defecto) · `private` |
 | preferred_language | `es` (defecto) · `en` |
 
@@ -91,6 +91,8 @@ Límites: 20/15 min por IP y 10/15 min por email (cuentan también los intentos 
 ```json
 { "email": "ana@example.com", "password": "…", "remember_me": false }
 ```
+
+`password`: 1–30 caracteres (contraseñas más largas → `422`).
 
 - `remember_me: false` → cookie de navegador; el servidor caduca la sesión a las 12 h.
 - `remember_me: true` → cookie persistente de 30 días (`Max-Age`).
